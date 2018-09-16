@@ -1,21 +1,26 @@
 #!/usr/bin/env python3
 
-from time import sleep
-from datetime import datetime, timedelta
+from time import sleep, asctime, time
 from picamera import PiCamera
-from fractions import Fraction
+import dropbox
+import pathlib
+import os
 
 camera = PiCamera()
-# camera.resolution = (3280, 2464) 
+# camera.resolution = (1024, 768)
 camera.resolution = camera.MAX_RESOLUTION
-camera.framerate = Fraction(1, 6)
-camera.shutter_speed = 6000000
-camera.iso = 800
+camera.start_preview()
 
-sleep(30)
+sleep(2)
 
-camera.exposure_mode = 'off'
-
-for filename in camera.capture_continuous('img{timestamp:%Y-%m-%d-%H-%M-%S}.png'):
-	print('Captured %s' % filename)
-	sleep(1)
+d = dropbox.Dropbox(os.environ['IRCAM_TOKEN'])
+while True:
+    fl = pathlib.Path(".")
+    fn = str(int(time())) + '.png'
+    ff = fl / fn
+    print('capturing ' + fn + ' ...')
+    camera.capture(fn)
+    print('uploading ' + fn + ' ...')
+    with ff.open('rb') as f:
+        d.files_upload(f.read(), '/ircam/' + fn, mode=dropbox.files.WriteMode("overwrite"))
+    os.remove(fn)
